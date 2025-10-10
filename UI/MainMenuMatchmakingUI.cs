@@ -26,13 +26,13 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     [Tooltip("If true the client will automatically host a match when no server is running.")]
     [SerializeField] private bool autoHostWhenAlone = true;
 
-    private MatchmakingNetworkManager matchmakingManager;
+    [SerializeField] private MatchmakingNetworkManager matchmakingManager;
     private MatchmakingRoomPlayer localRoomPlayer;
     private bool requestedMatchmaking;
 
     void Awake()
     {
-        matchmakingManager = NetworkManager.singleton as MatchmakingNetworkManager;
+        TryResolveMatchmakingManager();
         if (readyButton != null)
             readyButton.onClick.AddListener(OnReadyClicked);
         if (cancelButton != null)
@@ -82,7 +82,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         if (NetworkClient.active)
             return; // waiting for room player to be spawned
 
-        if (matchmakingManager == null)
+        if (!TryResolveMatchmakingManager())
         {
             Debug.LogError("MainMenuMatchmakingUI could not locate a MatchmakingNetworkManager.");
             return;
@@ -114,7 +114,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
     void HostMatch()
     {
-        if (matchmakingManager == null)
+        if (!TryResolveMatchmakingManager())
             return;
 
         Debug.Log("[MatchmakingUI] Hosting a new match - no existing host was found.");
@@ -189,5 +189,23 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     {
         if (readyButton != null)
             readyButton.interactable = interactable;
+    }
+
+    bool TryResolveMatchmakingManager()
+    {
+        if (matchmakingManager != null)
+            return true;
+
+        matchmakingManager = NetworkManager.singleton as MatchmakingNetworkManager;
+        if (matchmakingManager != null)
+            return true;
+
+#if UNITY_2023_1_OR_NEWER
+        matchmakingManager = UnityEngine.Object.FindFirstObjectByType<MatchmakingNetworkManager>();
+#else
+        matchmakingManager = UnityEngine.Object.FindObjectOfType<MatchmakingNetworkManager>();
+#endif
+
+        return matchmakingManager != null;
     }
 }

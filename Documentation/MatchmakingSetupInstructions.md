@@ -49,14 +49,15 @@ These directions use easy words so anyone can follow along. Read each step in or
 6. Add a Text object for the countdown numbers. Name it `CountdownLabel`.
 7. Select the Canvas (or another object that makes sense) and click **Add Component**.
 8. Search for `Main Menu Matchmaking UI` and add it.
-9. In the new component fields, drag the UI objects to the matching slots:
+9. Drag the `MatchmakingNetworkManager` object from the Hierarchy into the **Matchmaking Manager** slot so the script knows which manager to talk to. (If you forget, the script will try to find it automatically, but dragging it in keeps everything tidy.)
+10. In the other fields, drag the UI objects to the matching slots:
    * Drag the Ready button into **Ready Button**.
    * Drag the Cancel button into **Cancel Button**.
    * Drag the Ready button's Text component into **Ready Button Label**.
    * Drag `StatusLabel` into **Status Label**.
    * Drag `CountdownLabel` into **Countdown Label**.
-10. Change the words in the `Copy` section if you want different text.
-11. If you want the game to host by itself when it cannot find another host, keep **Auto Host When Alone** checked. Turn it off if you do not want that.
+11. Change the words in the `Copy` section if you want different text.
+12. If you want the game to host by itself when it cannot find another host, keep **Auto Host When Alone** checked. Turn it off if you do not want that.
 
 ## 5. Test it
 1. Press the **Play** button in Unity.
