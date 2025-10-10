@@ -28,7 +28,7 @@ public class MatchmakingNetworkManager : NetworkRoomManager
     /// </summary>
     public static event System.Action<int, int> QueueStatusChanged;
 
-    public override bool ReadyToBeginCheck()
+    protected override bool ReadyToBeginCheck()
     {
         if (roomSlots.Count == 0)
         {
