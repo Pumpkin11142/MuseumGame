@@ -28,48 +28,40 @@ public class MatchmakingNetworkManager : NetworkRoomManager
     /// </summary>
     public static event System.Action<int, int> QueueStatusChanged;
 
-    protected override bool ReadyToBeginCheck()
+    public override void OnRoomServerReady(NetworkConnectionToClient conn)
     {
-        if (roomSlots.Count == 0)
-        {
-            StopCountdown();
-            QueueStatusChanged?.Invoke(0, playersPerMatch);
-            return false;
-        }
+        base.OnRoomServerReady(conn);
+        EvaluateMatchReadiness();
+    }
 
-        int readyCount = roomSlots.Count(player => player.readyToBegin);
-        int totalConnected = roomSlots.Count;
+    public override void OnRoomServerConnect(NetworkConnectionToClient conn)
+    {
+        base.OnRoomServerConnect(conn);
+        EvaluateMatchReadiness();
+    }
 
-        QueueStatusChanged?.Invoke(readyCount, Mathf.Max(playersPerMatch, totalConnected));
+    public override void OnRoomServerDisconnect(NetworkConnectionToClient conn)
+    {
+        base.OnRoomServerDisconnect(conn);
+        EvaluateMatchReadiness();
+    }
 
-        bool enoughReady = readyCount >= playersPerMatch;
-        bool everyoneReady = readyCount == totalConnected;
+    public override void OnRoomServerAddPlayer(NetworkConnectionToClient conn)
+    {
+        base.OnRoomServerAddPlayer(conn);
+        EvaluateMatchReadiness();
+    }
 
-        if (!enoughReady)
-        {
-            StopCountdown();
-            return false;
-        }
-
-        if (requireAllPlayersReady && !everyoneReady)
-        {
-            StopCountdown();
-            return false;
-        }
-
-        if (startMatchRoutine == null)
-        {
-            startMatchRoutine = StartCoroutine(BeginMatchAfterDelay());
-        }
-
-        // The countdown will trigger match start manually, so prevent the base class from doing it automatically.
-        return false;
+    public override void OnRoomServerPlayersReady()
+    {
+        EvaluateMatchReadiness();
     }
 
     public override void OnRoomServerPlayersNotReady()
     {
         base.OnRoomServerPlayersNotReady();
         StopCountdown();
+        EvaluateMatchReadiness();
     }
 
     IEnumerator BeginMatchAfterDelay()
@@ -91,13 +83,44 @@ public class MatchmakingNetworkManager : NetworkRoomManager
         startMatchRoutine = null;
     }
 
+    void EvaluateMatchReadiness()
+    {
+        int readyCount = roomSlots.Count(player => player.readyToBegin);
+        int totalConnected = roomSlots.Count;
+
+        if (totalConnected == 0)
+        {
+            StopCountdown();
+            QueueStatusChanged?.Invoke(0, playersPerMatch);
+            return;
+        }
+
+        QueueStatusChanged?.Invoke(readyCount, Mathf.Max(playersPerMatch, totalConnected));
+
+        bool enoughReady = readyCount >= playersPerMatch;
+        bool everyoneReady = readyCount == totalConnected;
+
+        if (!enoughReady || (requireAllPlayersReady && !everyoneReady))
+        {
+            StopCountdown();
+            return;
+        }
+
+        if (startMatchRoutine == null)
+        {
+            startMatchRoutine = StartCoroutine(BeginMatchAfterDelay());
+        }
+    }
+
     bool AllRequirementsStillMet()
     {
         int readyCount = roomSlots.Count(player => player.readyToBegin);
         int totalConnected = roomSlots.Count;
-        if (readyCount < playersPerMatch)
+        bool enoughReady = readyCount >= playersPerMatch;
+        bool everyoneReady = readyCount == totalConnected;
+        if (!enoughReady)
             return false;
-        if (requireAllPlayersReady && readyCount < totalConnected)
+        if (requireAllPlayersReady && !everyoneReady)
             return false;
         return true;
     }
