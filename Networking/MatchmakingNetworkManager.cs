@@ -28,17 +28,17 @@ public class MatchmakingNetworkManager : NetworkRoomManager
     /// </summary>
     public static event System.Action<int, int> QueueStatusChanged;
 
-    public override void ReadyToBeginCheck()
+    public override bool ReadyToBeginCheck()
     {
-        if (roomPlayers.Count == 0)
+        if (roomSlots.Count == 0)
         {
             StopCountdown();
             QueueStatusChanged?.Invoke(0, playersPerMatch);
-            return;
+            return false;
         }
 
-        int readyCount = roomPlayers.Count(player => player.readyToBegin);
-        int totalConnected = roomPlayers.Count;
+        int readyCount = roomSlots.Count(player => player.readyToBegin);
+        int totalConnected = roomSlots.Count;
 
         QueueStatusChanged?.Invoke(readyCount, Mathf.Max(playersPerMatch, totalConnected));
 
@@ -48,19 +48,22 @@ public class MatchmakingNetworkManager : NetworkRoomManager
         if (!enoughReady)
         {
             StopCountdown();
-            return;
+            return false;
         }
 
         if (requireAllPlayersReady && !everyoneReady)
         {
             StopCountdown();
-            return;
+            return false;
         }
 
         if (startMatchRoutine == null)
         {
             startMatchRoutine = StartCoroutine(BeginMatchAfterDelay());
         }
+
+        // The countdown will trigger match start manually, so prevent the base class from doing it automatically.
+        return false;
     }
 
     public override void OnRoomServerPlayersNotReady()
@@ -90,8 +93,8 @@ public class MatchmakingNetworkManager : NetworkRoomManager
 
     bool AllRequirementsStillMet()
     {
-        int readyCount = roomPlayers.Count(player => player.readyToBegin);
-        int totalConnected = roomPlayers.Count;
+        int readyCount = roomSlots.Count(player => player.readyToBegin);
+        int totalConnected = roomSlots.Count;
         if (readyCount < playersPerMatch)
             return false;
         if (requireAllPlayersReady && readyCount < totalConnected)
