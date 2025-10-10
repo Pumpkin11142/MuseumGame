@@ -28,6 +28,25 @@ public class MatchmakingNetworkManager : NetworkRoomManager
     /// </summary>
     public static event System.Action<int, int> QueueStatusChanged;
 
+    public override void OnValidate()
+    {
+        base.OnValidate();
+
+        ApplyPlayerCountConstraints();
+    }
+
+    void Awake()
+    {
+        ApplyPlayerCountConstraints();
+    }
+
+    void ApplyPlayerCountConstraints()
+    {
+        int maxAllowed = maxConnections > 0 ? maxConnections : Mathf.Max(1, playersPerMatch);
+        playersPerMatch = Mathf.Clamp(playersPerMatch < 1 ? 1 : playersPerMatch, 1, maxAllowed);
+        minPlayers = playersPerMatch;
+    }
+
     public override void OnRoomServerConnect(NetworkConnectionToClient conn)
     {
         base.OnRoomServerConnect(conn);

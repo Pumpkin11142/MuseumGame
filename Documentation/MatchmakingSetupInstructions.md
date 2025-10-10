@@ -58,6 +58,7 @@ These directions use easy words so anyone can follow along. Read each step in or
    * Drag `CountdownLabel` into **Countdown Label**.
 11. Change the words in the `Copy` section if you want different text.
 12. If you want the game to host by itself when it cannot find another host, keep **Auto Host When Alone** checked. Turn it off if you do not want that.
+13. The **Connection Timeout Seconds** box controls how long the Ready button waits before it gives up looking for another host and starts its own. A number like `3` means "wait three seconds, then host".
 
 ## 5. Test it
 1. Press the **Play** button in Unity.

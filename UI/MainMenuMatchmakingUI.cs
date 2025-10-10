@@ -1,3 +1,4 @@
+using System.Collections;
 using Mirror;
 using UnityEngine;
 using UnityEngine.UI;
@@ -25,10 +26,12 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     [Header("Behaviour")]
     [Tooltip("If true the client will automatically host a match when no server is running.")]
     [SerializeField] private bool autoHostWhenAlone = true;
+    [SerializeField] private float connectionTimeoutSeconds = 3f;
 
     [SerializeField] private MatchmakingNetworkManager matchmakingManager;
     private MatchmakingRoomPlayer localRoomPlayer;
     private bool requestedMatchmaking;
+    private Coroutine connectionTimeoutRoutine;
 
     void Awake()
     {
@@ -49,6 +52,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
     void OnDestroy()
     {
+        StopConnectionTimeout();
         if (readyButton != null)
             readyButton.onClick.RemoveListener(OnReadyClicked);
         if (cancelButton != null)
@@ -92,11 +96,13 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         SetReadyButtonInteractable(false);
         requestedMatchmaking = true;
         matchmakingManager.StartClient();
+        BeginConnectionTimeout();
     }
 
     void OnCancelClicked()
     {
         requestedMatchmaking = false;
+        StopConnectionTimeout();
 
         if (localRoomPlayer != null && localRoomPlayer.readyToBegin)
         {
@@ -126,6 +132,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     void HandleLocalRoomPlayerSpawned(MatchmakingRoomPlayer roomPlayer)
     {
         localRoomPlayer = roomPlayer;
+        StopConnectionTimeout();
         SetReadyButtonInteractable(true);
         UpdateReadyButton(roomPlayer.readyToBegin);
         statusLabel.text = idleStatusText;
@@ -170,6 +177,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     {
         localRoomPlayer = null;
         statusLabel.text = idleStatusText;
+        StopConnectionTimeout();
         if (countdownLabel != null)
         {
             countdownLabel.gameObject.SetActive(false);
@@ -207,5 +215,53 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 #endif
 
         return matchmakingManager != null;
+    }
+
+    void BeginConnectionTimeout()
+    {
+        if (!autoHostWhenAlone)
+            return;
+
+        StopConnectionTimeout();
+
+        if (connectionTimeoutSeconds <= 0f)
+            return;
+
+        connectionTimeoutRoutine = StartCoroutine(WaitForConnectionTimeout());
+    }
+
+    void StopConnectionTimeout()
+    {
+        if (connectionTimeoutRoutine != null)
+        {
+            StopCoroutine(connectionTimeoutRoutine);
+            connectionTimeoutRoutine = null;
+        }
+    }
+
+    IEnumerator WaitForConnectionTimeout()
+    {
+        float elapsed = 0f;
+        while (requestedMatchmaking && NetworkClient.active && !NetworkClient.isConnected && elapsed < connectionTimeoutSeconds)
+        {
+            yield return null;
+            elapsed += Time.deltaTime;
+        }
+
+        connectionTimeoutRoutine = null;
+
+        if (!requestedMatchmaking || NetworkClient.isConnected)
+            yield break;
+
+        if (matchmakingManager == null && !TryResolveMatchmakingManager())
+        {
+            Debug.LogError("MainMenuMatchmakingUI could not locate a MatchmakingNetworkManager for fallback hosting.");
+            yield break;
+        }
+
+        Debug.Log("[MatchmakingUI] No host found in time. Starting a new host instance.");
+        requestedMatchmaking = false;
+        NetworkManager.singleton.StopClient();
+        HostMatch();
     }
 }
