@@ -34,12 +34,14 @@ public class MatchmakingRoomPlayer : NetworkRoomPlayer
         CmdChangeReadyState(!readyToBegin);
     }
 
-    public static void RaiseCountdown(int seconds)
+    [TargetRpc]
+    public void TargetRpcUpdateCountdown(NetworkConnection target, int secondsRemaining)
     {
-        CountdownUpdated?.Invoke(seconds);
+        CountdownUpdated?.Invoke(secondsRemaining);
     }
 
-    public static void CancelCountdown()
+    [TargetRpc]
+    public void TargetRpcCancelCountdown(NetworkConnection target)
     {
         CountdownCleared?.Invoke();
     }

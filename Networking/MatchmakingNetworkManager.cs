@@ -81,14 +81,14 @@ public class MatchmakingNetworkManager : NetworkRoomManager
         float remaining = Mathf.Max(0f, matchStartDelaySeconds);
         while (remaining > 0f)
         {
-            RpcUpdateCountdown(Mathf.CeilToInt(remaining));
+            BroadcastCountdown(Mathf.CeilToInt(remaining));
             yield return new WaitForSeconds(1f);
             remaining -= 1f;
         }
 
         if (AllRequirementsStillMet())
         {
-            RpcUpdateCountdown(0);
+            BroadcastCountdown(0);
             base.OnRoomServerPlayersReady();
         }
 
@@ -146,19 +146,33 @@ public class MatchmakingNetworkManager : NetworkRoomManager
         {
             StopCoroutine(startMatchRoutine);
             startMatchRoutine = null;
-            RpcCancelCountdown();
+            BroadcastCountdownCancelled();
         }
     }
 
-    [ClientRpc]
-    void RpcUpdateCountdown(int secondsRemaining)
+    void BroadcastCountdown(int secondsRemaining)
     {
-        MatchmakingRoomPlayer.RaiseCountdown(secondsRemaining);
+        foreach (NetworkRoomPlayer roomPlayer in roomSlots)
+        {
+            if (roomPlayer is MatchmakingRoomPlayer matchmakingPlayer &&
+                matchmakingPlayer != null &&
+                matchmakingPlayer.connectionToClient != null)
+            {
+                matchmakingPlayer.TargetRpcUpdateCountdown(matchmakingPlayer.connectionToClient, secondsRemaining);
+            }
+        }
     }
 
-    [ClientRpc]
-    void RpcCancelCountdown()
+    void BroadcastCountdownCancelled()
     {
-        MatchmakingRoomPlayer.CancelCountdown();
+        foreach (NetworkRoomPlayer roomPlayer in roomSlots)
+        {
+            if (roomPlayer is MatchmakingRoomPlayer matchmakingPlayer &&
+                matchmakingPlayer != null &&
+                matchmakingPlayer.connectionToClient != null)
+            {
+                matchmakingPlayer.TargetRpcCancelCountdown(matchmakingPlayer.connectionToClient);
+            }
+        }
     }
 }
