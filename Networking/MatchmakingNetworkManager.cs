@@ -28,12 +28,6 @@ public class MatchmakingNetworkManager : NetworkRoomManager
     /// </summary>
     public static event System.Action<int, int> QueueStatusChanged;
 
-    public override void OnRoomServerReady(NetworkConnectionToClient conn)
-    {
-        base.OnRoomServerReady(conn);
-        EvaluateMatchReadiness();
-    }
-
     public override void OnRoomServerConnect(NetworkConnectionToClient conn)
     {
         base.OnRoomServerConnect(conn);
@@ -50,6 +44,24 @@ public class MatchmakingNetworkManager : NetworkRoomManager
     {
         base.OnRoomServerAddPlayer(conn);
         EvaluateMatchReadiness();
+    }
+
+    public override void OnServerReady(NetworkConnectionToClient conn)
+    {
+        base.OnServerReady(conn);
+        EvaluateMatchReadiness();
+    }
+
+    public override void ReadyStatusChanged()
+    {
+        base.ReadyStatusChanged();
+        EvaluateMatchReadiness();
+    }
+
+    public override void OnStopServer()
+    {
+        StopCountdown();
+        base.OnStopServer();
     }
 
     public override void OnRoomServerPlayersReady()
@@ -85,8 +97,8 @@ public class MatchmakingNetworkManager : NetworkRoomManager
 
     void EvaluateMatchReadiness()
     {
-        int readyCount = roomSlots.Count(player => player.readyToBegin);
-        int totalConnected = roomSlots.Count;
+        int readyCount = roomSlots.Count(player => player != null && player.readyToBegin);
+        int totalConnected = roomSlots.Count(player => player != null);
 
         if (totalConnected == 0)
         {
@@ -95,7 +107,10 @@ public class MatchmakingNetworkManager : NetworkRoomManager
             return;
         }
 
-        QueueStatusChanged?.Invoke(readyCount, Mathf.Max(playersPerMatch, totalConnected));
+        int requiredPlayers = requireAllPlayersReady ? totalConnected : playersPerMatch;
+        requiredPlayers = Mathf.Clamp(requiredPlayers, 0, Mathf.Max(totalConnected, playersPerMatch));
+
+        QueueStatusChanged?.Invoke(readyCount, requiredPlayers);
 
         bool enoughReady = readyCount >= playersPerMatch;
         bool everyoneReady = readyCount == totalConnected;
@@ -114,8 +129,8 @@ public class MatchmakingNetworkManager : NetworkRoomManager
 
     bool AllRequirementsStillMet()
     {
-        int readyCount = roomSlots.Count(player => player.readyToBegin);
-        int totalConnected = roomSlots.Count;
+        int readyCount = roomSlots.Count(player => player != null && player.readyToBegin);
+        int totalConnected = roomSlots.Count(player => player != null);
         bool enoughReady = readyCount >= playersPerMatch;
         bool everyoneReady = readyCount == totalConnected;
         if (!enoughReady)
