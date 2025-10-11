@@ -1,5 +1,5 @@
 using System.Collections;
-using System.Linq;
+using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
 
@@ -116,8 +116,9 @@ public class MatchmakingNetworkManager : NetworkRoomManager
 
     void EvaluateMatchReadiness()
     {
-        int readyCount = roomSlots.Count(player => player != null && player.readyToBegin);
-        int totalConnected = roomSlots.Count(player => player != null);
+        int readyCount;
+        int totalConnected;
+        CountRoomPlayers(out readyCount, out totalConnected);
 
         if (totalConnected == 0)
         {
@@ -148,8 +149,9 @@ public class MatchmakingNetworkManager : NetworkRoomManager
 
     bool AllRequirementsStillMet()
     {
-        int readyCount = roomSlots.Count(player => player != null && player.readyToBegin);
-        int totalConnected = roomSlots.Count(player => player != null);
+        int readyCount;
+        int totalConnected;
+        CountRoomPlayers(out readyCount, out totalConnected);
         bool enoughReady = readyCount >= playersPerMatch;
         bool everyoneReady = readyCount == totalConnected;
         if (!enoughReady)
@@ -171,26 +173,62 @@ public class MatchmakingNetworkManager : NetworkRoomManager
 
     void BroadcastCountdown(int secondsRemaining)
     {
-        foreach (NetworkRoomPlayer roomPlayer in roomSlots)
+        foreach (MatchmakingRoomPlayer player in ActiveMatchmakingPlayers())
         {
-            if (roomPlayer is MatchmakingRoomPlayer matchmakingPlayer &&
-                matchmakingPlayer != null &&
-                matchmakingPlayer.connectionToClient != null)
+            if (player.connectionToClient != null)
             {
-                matchmakingPlayer.TargetRpcUpdateCountdown(matchmakingPlayer.connectionToClient, secondsRemaining);
+                player.TargetRpcUpdateCountdown(player.connectionToClient, secondsRemaining);
             }
         }
     }
 
     void BroadcastCountdownCancelled()
     {
-        foreach (NetworkRoomPlayer roomPlayer in roomSlots)
+        foreach (MatchmakingRoomPlayer player in ActiveMatchmakingPlayers())
         {
-            if (roomPlayer is MatchmakingRoomPlayer matchmakingPlayer &&
-                matchmakingPlayer != null &&
-                matchmakingPlayer.connectionToClient != null)
+            if (player.connectionToClient != null)
             {
-                matchmakingPlayer.TargetRpcCancelCountdown(matchmakingPlayer.connectionToClient);
+                player.TargetRpcCancelCountdown(player.connectionToClient);
+            }
+        }
+    }
+
+    void CountRoomPlayers(out int readyCount, out int totalConnected)
+    {
+        readyCount = 0;
+        totalConnected = 0;
+
+        if (!NetworkServer.active)
+            return;
+
+        foreach (NetworkConnectionToClient conn in NetworkServer.connections.Values)
+        {
+            if (conn == null || conn.identity == null)
+                continue;
+
+            if (!conn.identity.TryGetComponent(out NetworkRoomPlayer roomPlayer) || roomPlayer == null)
+                continue;
+
+            totalConnected++;
+
+            if (roomPlayer.readyToBegin)
+                readyCount++;
+        }
+    }
+
+    System.Collections.Generic.IEnumerable<MatchmakingRoomPlayer> ActiveMatchmakingPlayers()
+    {
+        if (!NetworkServer.active)
+            yield break;
+
+        foreach (NetworkConnectionToClient conn in NetworkServer.connections.Values)
+        {
+            if (conn == null || conn.identity == null)
+                continue;
+
+            if (conn.identity.TryGetComponent(out MatchmakingRoomPlayer roomPlayer) && roomPlayer != null)
+            {
+                yield return roomPlayer;
             }
         }
     }
