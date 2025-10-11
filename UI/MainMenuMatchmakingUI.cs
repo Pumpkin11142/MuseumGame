@@ -67,16 +67,6 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         MatchmakingNetworkManager.QueueStatusChanged -= HandleQueueStatusChanged;
     }
 
-    void Update()
-    {
-        if (requestedMatchmaking && autoHostWhenAlone && !NetworkClient.isConnected && !NetworkClient.active)
-        {
-            // We tried to connect but could not - become the host instead.
-            requestedMatchmaking = false;
-            HostMatch();
-        }
-    }
-
     void OnReadyClicked()
     {
         if (localRoomPlayer != null)
@@ -84,6 +74,9 @@ public class MainMenuMatchmakingUI : MonoBehaviour
             localRoomPlayer.ToggleReady();
             return;
         }
+
+        if (NetworkServer.active)
+            return; // hosting already, wait for the local room player
 
         if (NetworkClient.active)
             return; // waiting for room player to be spawned
@@ -94,7 +87,8 @@ public class MainMenuMatchmakingUI : MonoBehaviour
             return;
         }
 
-        statusLabel.text = searchingStatusText;
+        if (statusLabel != null)
+            statusLabel.text = searchingStatusText;
         SetReadyButtonInteractable(false);
         requestedMatchmaking = true;
         autoReadyWhenRoomPlayerAvailable = true;
@@ -116,7 +110,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
         if (NetworkClient.isConnected || NetworkClient.active)
         {
-            NetworkManager.singleton.StopClient();
+            StopActiveClient();
         }
 
         ResetUI();
@@ -127,9 +121,13 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         if (!TryResolveMatchmakingManager())
             return;
 
+        if (NetworkServer.active)
+            return;
+
         Debug.Log("[MatchmakingUI] Hosting a new match - no existing host was found.");
         matchmakingManager.StartHost();
-        statusLabel.text = "Hosting match...";
+        if (statusLabel != null)
+            statusLabel.text = "Hosting match...";
         SetReadyButtonInteractable(true);
     }
 
@@ -139,7 +137,8 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         StopConnectionTimeout();
         SetReadyButtonInteractable(true);
         UpdateReadyButton(roomPlayer.readyToBegin);
-        statusLabel.text = roomPlayer.readyToBegin ? waitingForCountdownText : idleStatusText;
+        if (statusLabel != null)
+            statusLabel.text = roomPlayer.readyToBegin ? waitingForCountdownText : idleStatusText;
 
         if (autoReadyWhenRoomPlayerAvailable)
         {
@@ -154,7 +153,8 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     void HandleLocalReadyStateChanged(bool ready)
     {
         UpdateReadyButton(ready);
-        statusLabel.text = ready ? waitingForCountdownText : idleStatusText;
+        if (statusLabel != null)
+            statusLabel.text = ready ? waitingForCountdownText : idleStatusText;
     }
 
     void HandleCountdownUpdated(int seconds)
@@ -188,7 +188,8 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     void ResetUI()
     {
         localRoomPlayer = null;
-        statusLabel.text = idleStatusText;
+        if (statusLabel != null)
+            statusLabel.text = idleStatusText;
         StopConnectionTimeout();
         autoReadyWhenRoomPlayerAvailable = false;
         if (countdownLabel != null)
@@ -266,7 +267,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         if (!requestedMatchmaking || NetworkClient.isConnected)
             yield break;
 
-        if (matchmakingManager == null && !TryResolveMatchmakingManager())
+        if (!TryResolveMatchmakingManager())
         {
             Debug.LogError("MainMenuMatchmakingUI could not locate a MatchmakingNetworkManager for fallback hosting.");
             yield break;
@@ -274,7 +275,31 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
         Debug.Log("[MatchmakingUI] No host found in time. Starting a new host instance.");
         requestedMatchmaking = false;
-        NetworkManager.singleton.StopClient();
+        StopActiveClient();
         HostMatch();
+    }
+
+    void StopActiveClient()
+    {
+        if (matchmakingManager == null)
+            TryResolveMatchmakingManager();
+
+        if (matchmakingManager != null)
+        {
+            if (NetworkServer.active)
+                matchmakingManager.StopHost();
+            else
+                matchmakingManager.StopClient();
+            return;
+        }
+
+        NetworkManager fallbackManager = NetworkManager.singleton;
+        if (fallbackManager != null)
+        {
+            if (NetworkServer.active)
+                fallbackManager.StopHost();
+            else
+                fallbackManager.StopClient();
+        }
     }
 }

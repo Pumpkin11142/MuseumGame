@@ -19,14 +19,15 @@ These directions use easy words so anyone can follow along. Read each step in or
 2. In the Hierarchy window, click the `+` button (Create).
 3. Choose **Create Empty**. A new empty object appears.
 4. With the new object selected, go to the Inspector and rename it to **MatchmakingNetworkManager**.
-5. In the Inspector, click **Add Component**.
-6. Search for `Matchmaking Network Manager` and click it. (It comes from the `MatchmakingNetworkManager.cs` script.)
-7. Still in Add Component, search for `Telepathy Transport` (or the transport you use) and add it. Put the transport settings you want.
-8. In the `Matchmaking Network Manager` component, set these fields:
+5. Important: there should only be **one** NetworkManager in the whole scene. If you already have a different NetworkManager, delete it or swap its component for this new one so there are no duplicates when the game runs.
+6. In the Inspector, click **Add Component**.
+7. Search for `Matchmaking Network Manager` and click it. (It comes from the `MatchmakingNetworkManager.cs` script.)
+8. Still in Add Component, search for your transport (for example `KCP Transport` or `Telepathy Transport`) and add it. Put the transport settings you want.
+9. In the `Matchmaking Network Manager` component, set these fields:
    * **Room Player Prefab** – drag the prefab you will create in the next section.
    * **Game Player Prefab** – drag the player prefab that runs in the match.
    * **Online Scene** – choose the scene the match uses.
-   * **Offline Scene** – choose the menu scene.
+   * **Offline Scene** – choose the menu scene. Only this menu scene should contain the manager object; do **not** put another NetworkManager in the online scene.
    * **Players Per Match** – type how many players must be ready before a match starts (for example, `2`).
    * **Match Start Delay Seconds** – type how long the countdown should wait (for example, `3`).
    * **Require All Players Ready** – turn this on if every player must press Ready, or off if just the first few need to.
@@ -60,6 +61,7 @@ These directions use easy words so anyone can follow along. Read each step in or
 12. If you want the game to host by itself when it cannot find another host, keep **Auto Host When Alone** checked. Turn it off if you do not want that.
 13. The **Connection Timeout Seconds** box controls how long the Ready button waits before it gives up looking for another host and starts its own. A number like `3` means "wait three seconds, then host".
 14. If you turn **Auto Host When Alone** off, make sure someone presses a separate "Host" button or runs a dedicated server before anyone hits Ready. Otherwise the Ready button will keep looking and never connect.
+15. Double-check that the **Matchmaking Manager** slot points at the same object you set up in Step 2. If the object ever gets destroyed (for example because a duplicate manager was in the loaded scene), reassign this slot after you clean up the duplicate.
 
 ## 5. Test it
 1. Press the **Play** button in Unity.
@@ -68,6 +70,7 @@ These directions use easy words so anyone can follow along. Read each step in or
 4. Watch the status text. It should say it is waiting for more players (for example, "Waiting for players (1/2)").
 5. Start a second copy of the game (another editor play mode or a built player) and join as a client if you want to test multiple people.
 6. When enough players are Ready (or the Ready count reaches your **Players Per Match** number), the countdown will appear and then the game will switch to the Online scene.
-7. If you want to stop, press the Cancel button to leave the queue.
+7. If the scene changes but you only see a frozen lobby frame, make sure the `Game Player Prefab` is assigned and that the online scene does **not** contain another NetworkManager (that can break the swap to the gameplay player).
+8. If you want to stop, press the Cancel button to leave the queue.
 
 Take your time with each step. If something looks different, read the step again and check that the correct object is selected. You got this!
