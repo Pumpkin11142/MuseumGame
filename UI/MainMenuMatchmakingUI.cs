@@ -2,6 +2,7 @@ using System.Collections;
 using Mirror;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 /// <summary>
 /// Handles the ready up button on the main menu and displays matchmaking status updates.
@@ -11,9 +12,9 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     [Header("UI")]
     [SerializeField] private Button readyButton;
     [SerializeField] private Button cancelButton;
-    [SerializeField] private Text readyButtonLabel;
-    [SerializeField] private Text statusLabel;
-    [SerializeField] private Text countdownLabel;
+    [SerializeField] private TMP_Text readyButtonLabel;
+    [SerializeField] private TMP_Text statusLabel;
+    [SerializeField] private TMP_Text countdownLabel;
 
     [Header("Copy")]
     [SerializeField] private string readyText = "Ready";
