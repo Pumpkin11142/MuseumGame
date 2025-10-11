@@ -201,17 +201,14 @@ public class MatchmakingNetworkManager : NetworkRoomManager
         if (!NetworkServer.active)
             return;
 
-        foreach (NetworkConnectionToClient conn in NetworkServer.connections.Values)
+        foreach (NetworkRoomPlayer player in roomSlots)
         {
-            if (conn == null || conn.identity == null)
-                continue;
-
-            if (!conn.identity.TryGetComponent(out NetworkRoomPlayer roomPlayer) || roomPlayer == null)
+            if (player == null)
                 continue;
 
             totalConnected++;
 
-            if (roomPlayer.readyToBegin)
+            if (player.readyToBegin)
                 readyCount++;
         }
     }
@@ -221,15 +218,13 @@ public class MatchmakingNetworkManager : NetworkRoomManager
         if (!NetworkServer.active)
             yield break;
 
-        foreach (NetworkConnectionToClient conn in NetworkServer.connections.Values)
+        foreach (NetworkRoomPlayer player in roomSlots)
         {
-            if (conn == null || conn.identity == null)
+            if (player == null)
                 continue;
 
-            if (conn.identity.TryGetComponent(out MatchmakingRoomPlayer roomPlayer) && roomPlayer != null)
-            {
-                yield return roomPlayer;
-            }
+            if (player is MatchmakingRoomPlayer matchmakingPlayer)
+                yield return matchmakingPlayer;
         }
     }
 }

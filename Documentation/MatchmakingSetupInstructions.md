@@ -59,13 +59,15 @@ These directions use easy words so anyone can follow along. Read each step in or
 11. Change the words in the `Copy` section if you want different text.
 12. If you want the game to host by itself when it cannot find another host, keep **Auto Host When Alone** checked. Turn it off if you do not want that.
 13. The **Connection Timeout Seconds** box controls how long the Ready button waits before it gives up looking for another host and starts its own. A number like `3` means "wait three seconds, then host".
+14. If you turn **Auto Host When Alone** off, make sure someone presses a separate "Host" button or runs a dedicated server before anyone hits Ready. Otherwise the Ready button will keep looking and never connect.
 
 ## 5. Test it
 1. Press the **Play** button in Unity.
-2. Click the Ready button in the Game view.
-3. Watch the status text. It should say it is waiting for more players.
-4. Start a second copy of the game (another editor play mode or a built player) and join as a client.
-5. When both players press Ready, the countdown should show, and then the game should switch to the Online scene.
-6. If you want to stop, press the Cancel button to leave the queue.
+2. Click the Ready button in the Game view. The script will look for an existing host.
+3. If no server is already running and **Auto Host When Alone** is on, wait a few seconds. You will see "Hosting match..." for a moment while the game becomes the server. As soon as your room player appears, it will press Ready for you.
+4. Watch the status text. It should say it is waiting for more players (for example, "Waiting for players (1/2)").
+5. Start a second copy of the game (another editor play mode or a built player) and join as a client if you want to test multiple people.
+6. When enough players are Ready (or the Ready count reaches your **Players Per Match** number), the countdown will appear and then the game will switch to the Online scene.
+7. If you want to stop, press the Cancel button to leave the queue.
 
 Take your time with each step. If something looks different, read the step again and check that the correct object is selected. You got this!

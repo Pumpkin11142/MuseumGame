@@ -32,6 +32,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     private MatchmakingRoomPlayer localRoomPlayer;
     private bool requestedMatchmaking;
     private Coroutine connectionTimeoutRoutine;
+    private bool autoReadyWhenRoomPlayerAvailable;
 
     void Awake()
     {
@@ -53,6 +54,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     void OnDestroy()
     {
         StopConnectionTimeout();
+        autoReadyWhenRoomPlayerAvailable = false;
         if (readyButton != null)
             readyButton.onClick.RemoveListener(OnReadyClicked);
         if (cancelButton != null)
@@ -95,6 +97,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         statusLabel.text = searchingStatusText;
         SetReadyButtonInteractable(false);
         requestedMatchmaking = true;
+        autoReadyWhenRoomPlayerAvailable = true;
         matchmakingManager.StartClient();
         BeginConnectionTimeout();
     }
@@ -102,6 +105,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     void OnCancelClicked()
     {
         requestedMatchmaking = false;
+        autoReadyWhenRoomPlayerAvailable = false;
         StopConnectionTimeout();
 
         if (localRoomPlayer != null && localRoomPlayer.readyToBegin)
@@ -135,7 +139,15 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         StopConnectionTimeout();
         SetReadyButtonInteractable(true);
         UpdateReadyButton(roomPlayer.readyToBegin);
-        statusLabel.text = idleStatusText;
+        statusLabel.text = roomPlayer.readyToBegin ? waitingForCountdownText : idleStatusText;
+
+        if (autoReadyWhenRoomPlayerAvailable)
+        {
+            autoReadyWhenRoomPlayerAvailable = false;
+            if (!roomPlayer.readyToBegin)
+                roomPlayer.ToggleReady();
+        }
+
         requestedMatchmaking = false;
     }
 
@@ -178,6 +190,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         localRoomPlayer = null;
         statusLabel.text = idleStatusText;
         StopConnectionTimeout();
+        autoReadyWhenRoomPlayerAvailable = false;
         if (countdownLabel != null)
         {
             countdownLabel.gameObject.SetActive(false);
