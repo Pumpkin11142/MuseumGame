@@ -39,6 +39,8 @@ public class MatchmakingRoomPlayer : NetworkRoomPlayer
         }
 
         Debug.Log($"{LogPrefix} ToggleReady - switching to {!readyToBegin} for netId={netId}");
+            return;
+
         CmdChangeReadyState(!readyToBegin);
     }
 

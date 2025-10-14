@@ -239,6 +239,8 @@ public class MatchmakingNetworkManager : NetworkRoomManager
             {
                 Debug.LogWarning($"{LogPrefix} BroadcastCountdownCancelled - player without connection skipped");
             }
+                player.TargetRpcCancelCountdown(player.connectionToClient);
+            }
         }
     }
 
@@ -252,6 +254,7 @@ public class MatchmakingNetworkManager : NetworkRoomManager
             Debug.LogWarning($"{LogPrefix} CountRoomPlayers - NetworkServer not active");
             return;
         }
+            return;
 
         foreach (NetworkConnectionToClient connection in NetworkServer.connections.Values)
         {
@@ -266,6 +269,10 @@ public class MatchmakingNetworkManager : NetworkRoomManager
                 Debug.LogWarning($"{LogPrefix} CountRoomPlayers - connection {connection.connectionId} missing NetworkRoomPlayer");
                 continue;
             }
+                continue;
+
+            if (!connection.identity.TryGetComponent(out NetworkRoomPlayer player) || player == null)
+                continue;
 
             totalConnected++;
 
@@ -281,6 +288,8 @@ public class MatchmakingNetworkManager : NetworkRoomManager
         }
 
         Debug.Log($"{LogPrefix} CountRoomPlayers - totals ready={readyCount}, totalConnected={totalConnected}");
+                readyCount++;
+        }
     }
 
     System.Collections.Generic.IEnumerable<MatchmakingRoomPlayer> ActiveMatchmakingPlayers()
@@ -290,6 +299,7 @@ public class MatchmakingNetworkManager : NetworkRoomManager
             Debug.LogWarning($"{LogPrefix} ActiveMatchmakingPlayers - NetworkServer not active");
             yield break;
         }
+            yield break;
 
         foreach (NetworkConnectionToClient connection in NetworkServer.connections.Values)
         {
@@ -304,6 +314,10 @@ public class MatchmakingNetworkManager : NetworkRoomManager
                 Debug.LogWarning($"{LogPrefix} ActiveMatchmakingPlayers - connection {connection.connectionId} missing MatchmakingRoomPlayer");
                 continue;
             }
+                continue;
+
+            if (!connection.identity.TryGetComponent(out MatchmakingRoomPlayer player) || player == null)
+                continue;
 
             yield return player;
         }
