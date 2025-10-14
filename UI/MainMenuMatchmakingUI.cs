@@ -9,6 +9,14 @@ using TMPro;
 /// </summary>
 public class MainMenuMatchmakingUI : MonoBehaviour
 {
+    private const string LogPrefix = "[MatchmakingUI]";
+
+    [Header("UI")]
+    [SerializeField] private Button readyButton;
+    [SerializeField] private Button cancelButton;
+    [SerializeField] private Text readyButtonLabel;
+    [SerializeField] private Text statusLabel;
+    [SerializeField] private Text countdownLabel;
     [Header("UI")]
     [SerializeField] private Button readyButton;
     [SerializeField] private Button cancelButton;
@@ -38,6 +46,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     void Awake()
     {
         TryResolveMatchmakingManager();
+        Debug.Log($"{LogPrefix} Awake - autoHostWhenAlone={autoHostWhenAlone}, connectionTimeoutSeconds={connectionTimeoutSeconds}");
         if (readyButton != null)
             readyButton.onClick.AddListener(OnReadyClicked);
         if (cancelButton != null)
@@ -54,6 +63,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
     void OnDestroy()
     {
+        Debug.Log($"{LogPrefix} OnDestroy - cleaning up listeners");
         StopConnectionTimeout();
         autoReadyWhenRoomPlayerAvailable = false;
         if (readyButton != null)
@@ -70,6 +80,10 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
     void OnReadyClicked()
     {
+        Debug.Log($"{LogPrefix} OnReadyClicked - hasLocalRoomPlayer={localRoomPlayer != null}, serverActive={NetworkServer.active}, clientActive={NetworkClient.active}, requestedMatchmaking={requestedMatchmaking}");
+        if (localRoomPlayer != null)
+        {
+            Debug.Log($"{LogPrefix} OnReadyClicked - toggling ready on local room player");
         if (localRoomPlayer != null)
         {
             localRoomPlayer.ToggleReady();
@@ -77,6 +91,16 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         }
 
         if (NetworkServer.active)
+        {
+            Debug.Log($"{LogPrefix} OnReadyClicked - server already active, waiting for room player");
+            return; // hosting already, wait for the local room player
+        }
+
+        if (NetworkClient.active)
+        {
+            Debug.Log($"{LogPrefix} OnReadyClicked - client already active, waiting for room player");
+            return; // waiting for room player to be spawned
+        }
             return; // hosting already, wait for the local room player
 
         if (NetworkClient.active)
@@ -88,6 +112,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
             return;
         }
 
+        Debug.Log($"{LogPrefix} OnReadyClicked - starting matchmaking client");
         if (statusLabel != null)
             statusLabel.text = searchingStatusText;
         SetReadyButtonInteractable(false);
@@ -99,18 +124,21 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
     void OnCancelClicked()
     {
+        Debug.Log($"{LogPrefix} OnCancelClicked - hasLocalRoomPlayer={localRoomPlayer != null}, clientActive={NetworkClient.active}, serverActive={NetworkServer.active}");
         requestedMatchmaking = false;
         autoReadyWhenRoomPlayerAvailable = false;
         StopConnectionTimeout();
 
         if (localRoomPlayer != null && localRoomPlayer.readyToBegin)
         {
+            Debug.Log($"{LogPrefix} OnCancelClicked - toggling ready off on local room player");
             localRoomPlayer.ToggleReady();
             return;
         }
 
         if (NetworkClient.isConnected || NetworkClient.active)
         {
+            Debug.Log($"{LogPrefix} OnCancelClicked - stopping active client session");
             StopActiveClient();
         }
 
@@ -125,6 +153,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         if (NetworkServer.active)
             return;
 
+        Debug.Log($"{LogPrefix} HostMatch - starting new host instance");
         Debug.Log("[MatchmakingUI] Hosting a new match - no existing host was found.");
         matchmakingManager.StartHost();
         if (statusLabel != null)
@@ -134,6 +163,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
     void HandleLocalRoomPlayerSpawned(MatchmakingRoomPlayer roomPlayer)
     {
+        Debug.Log($"{LogPrefix} HandleLocalRoomPlayerSpawned - netId={roomPlayer?.netId}, autoReady={autoReadyWhenRoomPlayerAvailable}");
         localRoomPlayer = roomPlayer;
         StopConnectionTimeout();
         SetReadyButtonInteractable(true);
@@ -153,6 +183,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
     void HandleLocalReadyStateChanged(bool ready)
     {
+        Debug.Log($"{LogPrefix} HandleLocalReadyStateChanged - ready={ready}");
         UpdateReadyButton(ready);
         if (statusLabel != null)
             statusLabel.text = ready ? waitingForCountdownText : idleStatusText;
@@ -160,6 +191,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
     void HandleCountdownUpdated(int seconds)
     {
+        Debug.Log($"{LogPrefix} HandleCountdownUpdated - seconds={seconds}");
         if (countdownLabel == null)
             return;
 
@@ -169,6 +201,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
     void HandleCountdownCleared()
     {
+        Debug.Log($"{LogPrefix} HandleCountdownCleared");
         if (countdownLabel == null)
             return;
 
@@ -177,6 +210,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
     void HandleQueueStatusChanged(int readyPlayers, int required)
     {
+        Debug.Log($"{LogPrefix} HandleQueueStatusChanged - ready={readyPlayers}, required={required}, clientActive={NetworkClient.active}");
         if (statusLabel == null)
             return;
 
@@ -188,6 +222,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
     void ResetUI()
     {
+        Debug.Log($"{LogPrefix} ResetUI");
         localRoomPlayer = null;
         if (statusLabel != null)
             statusLabel.text = idleStatusText;
@@ -204,12 +239,14 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
     void UpdateReadyButton(bool ready)
     {
+        Debug.Log($"{LogPrefix} UpdateReadyButton - ready={ready}");
         if (readyButtonLabel != null)
             readyButtonLabel.text = ready ? cancelReadyText : readyText;
     }
 
     void SetReadyButtonInteractable(bool interactable)
     {
+        Debug.Log($"{LogPrefix} SetReadyButtonInteractable - interactable={interactable}");
         if (readyButton != null)
             readyButton.interactable = interactable;
     }
@@ -217,6 +254,17 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     bool TryResolveMatchmakingManager()
     {
         if (matchmakingManager != null)
+        {
+            Debug.Log($"{LogPrefix} TryResolveMatchmakingManager - already have reference");
+            return true;
+        }
+
+        matchmakingManager = NetworkManager.singleton as MatchmakingNetworkManager;
+        if (matchmakingManager != null)
+        {
+            Debug.Log($"{LogPrefix} TryResolveMatchmakingManager - resolved via NetworkManager.singleton");
+            return true;
+        }
             return true;
 
         matchmakingManager = NetworkManager.singleton as MatchmakingNetworkManager;
@@ -229,17 +277,28 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         matchmakingManager = UnityEngine.Object.FindObjectOfType<MatchmakingNetworkManager>();
 #endif
 
+        Debug.Log($"{LogPrefix} TryResolveMatchmakingManager - resolved via scene search={matchmakingManager != null}");
         return matchmakingManager != null;
     }
 
     void BeginConnectionTimeout()
     {
         if (!autoHostWhenAlone)
+        {
+            Debug.Log($"{LogPrefix} BeginConnectionTimeout - autoHost disabled");
+            return;
+        }
             return;
 
         StopConnectionTimeout();
 
         if (connectionTimeoutSeconds <= 0f)
+        {
+            Debug.Log($"{LogPrefix} BeginConnectionTimeout - timeout disabled");
+            return;
+        }
+
+        Debug.Log($"{LogPrefix} BeginConnectionTimeout - starting timer for {connectionTimeoutSeconds} seconds");
             return;
 
         connectionTimeoutRoutine = StartCoroutine(WaitForConnectionTimeout());
@@ -249,6 +308,14 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     {
         if (connectionTimeoutRoutine != null)
         {
+            Debug.Log($"{LogPrefix} StopConnectionTimeout - stopping active routine");
+            StopCoroutine(connectionTimeoutRoutine);
+            connectionTimeoutRoutine = null;
+        }
+        else if (requestedMatchmaking)
+        {
+            Debug.Log($"{LogPrefix} StopConnectionTimeout - no routine to stop");
+        }
             StopCoroutine(connectionTimeoutRoutine);
             connectionTimeoutRoutine = null;
         }
@@ -274,6 +341,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
             yield break;
         }
 
+        Debug.Log($"{LogPrefix} WaitForConnectionTimeout - no host found after {elapsed:F2} seconds, starting host");
         Debug.Log("[MatchmakingUI] No host found in time. Starting a new host instance.");
         requestedMatchmaking = false;
         StopActiveClient();
@@ -287,6 +355,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
 
         if (matchmakingManager != null)
         {
+            Debug.Log($"{LogPrefix} StopActiveClient - using matchmaking manager, serverActive={NetworkServer.active}");
             if (NetworkServer.active)
                 matchmakingManager.StopHost();
             else
@@ -297,10 +366,15 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         NetworkManager fallbackManager = NetworkManager.singleton;
         if (fallbackManager != null)
         {
+            Debug.Log($"{LogPrefix} StopActiveClient - using fallback NetworkManager, serverActive={NetworkServer.active}");
             if (NetworkServer.active)
                 fallbackManager.StopHost();
             else
                 fallbackManager.StopClient();
+        }
+        else
+        {
+            Debug.LogWarning($"{LogPrefix} StopActiveClient - no NetworkManager available to stop");
         }
     }
 }

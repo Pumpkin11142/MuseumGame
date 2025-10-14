@@ -73,4 +73,14 @@ These directions use easy words so anyone can follow along. Read each step in or
 7. If the scene changes but you only see a frozen lobby frame, make sure the `Game Player Prefab` is assigned and that the online scene does **not** contain another NetworkManager (that can break the swap to the gameplay player).
 8. If you want to stop, press the Cancel button to leave the queue.
 
+## 6. Debugging with the new logs
+1. When something is not working, look at the **Console** window in Unity or the log output in your build. Every matchmaking script now prints messages that start with these tags:
+   * `[MatchmakingManager]` – messages from the network manager about connections, ready counts, countdowns, and scene swaps.
+   * `[MatchmakingRoomPlayer]` – messages from each room player about ready toggles and countdown updates.
+   * `[MatchmakingUI]` – messages from the main menu UI about button presses, auto-host decisions, and connection retries.
+2. Read the logs from top to bottom. They explain exactly what the code is doing (for example: "starting matchmaking client" or "no host found after 3.00 seconds, starting host").
+3. If the client cannot find the server, check for lines about the connection timeout. They will say whether the UI gave up searching and tried to host by itself.
+4. If you see warnings about missing NetworkManagers, make sure only one NetworkManager exists in the scene and that the UI reference points to it.
+5. When you fix a problem, press Ready again and watch the logs to confirm the flow now reaches the countdown and the scene switch.
+
 Take your time with each step. If something looks different, read the step again and check that the correct object is selected. You got this!
