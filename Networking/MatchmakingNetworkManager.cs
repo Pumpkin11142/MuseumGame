@@ -26,6 +26,8 @@ public class MatchmakingNetworkManager : NetworkRoomManager
     private Coroutine startMatchRoutine;
     private int readinessCheckCounter;
 
+    private static readonly List<MatchmakingRoomPlayer> playerBuffer = new List<MatchmakingRoomPlayer>();
+
     /// <summary>
     /// Called whenever the queue changes. First value is ready players, second is total required.
     /// </summary>
@@ -211,37 +213,41 @@ public class MatchmakingNetworkManager : NetworkRoomManager
     void BroadcastCountdown(int secondsRemaining)
     {
         Debug.Log($"{LogPrefix} BroadcastCountdown - secondsRemaining={secondsRemaining}");
-        foreach (MatchmakingRoomPlayer player in ActiveMatchmakingPlayers())
+        FillActiveMatchmakingPlayers(playerBuffer);
+        for (int i = 0; i < playerBuffer.Count; i++)
         {
-            if (player.connectionToClient != null)
-            {
-                Debug.Log($"{LogPrefix} BroadcastCountdown - sending to connectionId={player.connectionToClient.connectionId}");
-                player.TargetRpcUpdateCountdown(player.connectionToClient, secondsRemaining);
-            }
-            else
+            MatchmakingRoomPlayer player = playerBuffer[i];
+            if (player.connectionToClient == null)
             {
                 Debug.LogWarning($"{LogPrefix} BroadcastCountdown - player without connection skipped");
+                continue;
             }
+
+            Debug.Log($"{LogPrefix} BroadcastCountdown - sending to connectionId={player.connectionToClient.connectionId}");
+            player.TargetRpcUpdateCountdown(player.connectionToClient, secondsRemaining);
         }
+
+        playerBuffer.Clear();
     }
 
     void BroadcastCountdownCancelled()
     {
         Debug.Log($"{LogPrefix} BroadcastCountdownCancelled - notifying clients");
-        foreach (MatchmakingRoomPlayer player in ActiveMatchmakingPlayers())
+        FillActiveMatchmakingPlayers(playerBuffer);
+        for (int i = 0; i < playerBuffer.Count; i++)
         {
-            if (player.connectionToClient != null)
-            {
-                Debug.Log($"{LogPrefix} BroadcastCountdownCancelled - sending to connectionId={player.connectionToClient.connectionId}");
-                player.TargetRpcCancelCountdown(player.connectionToClient);
-            }
-            else
+            MatchmakingRoomPlayer player = playerBuffer[i];
+            if (player.connectionToClient == null)
             {
                 Debug.LogWarning($"{LogPrefix} BroadcastCountdownCancelled - player without connection skipped");
+                continue;
             }
-                player.TargetRpcCancelCountdown(player.connectionToClient);
-            }
+
+            Debug.Log($"{LogPrefix} BroadcastCountdownCancelled - sending to connectionId={player.connectionToClient.connectionId}");
+            player.TargetRpcCancelCountdown(player.connectionToClient);
         }
+
+        playerBuffer.Clear();
     }
 
     void CountRoomPlayers(out int readyCount, out int totalConnected)
@@ -254,29 +260,32 @@ public class MatchmakingNetworkManager : NetworkRoomManager
             Debug.LogWarning($"{LogPrefix} CountRoomPlayers - NetworkServer not active");
             return;
         }
-            return;
 
         foreach (NetworkConnectionToClient connection in NetworkServer.connections.Values)
         {
-            if (connection == null || connection.identity == null)
+            if (connection == null)
             {
-                Debug.LogWarning($"{LogPrefix} CountRoomPlayers - skipping null connection or identity");
+                Debug.LogWarning($"{LogPrefix} CountRoomPlayers - skipping null connection");
                 continue;
             }
 
-            if (!connection.identity.TryGetComponent(out NetworkRoomPlayer player) || player == null)
+            NetworkIdentity identity = connection.identity;
+            if (identity == null)
+            {
+                Debug.LogWarning($"{LogPrefix} CountRoomPlayers - connection {connection.connectionId} missing identity");
+                continue;
+            }
+
+            NetworkRoomPlayer roomPlayer = identity.GetComponent<NetworkRoomPlayer>();
+            if (roomPlayer == null)
             {
                 Debug.LogWarning($"{LogPrefix} CountRoomPlayers - connection {connection.connectionId} missing NetworkRoomPlayer");
                 continue;
             }
-                continue;
-
-            if (!connection.identity.TryGetComponent(out NetworkRoomPlayer player) || player == null)
-                continue;
 
             totalConnected++;
 
-            if (player.readyToBegin)
+            if (roomPlayer.readyToBegin)
             {
                 Debug.Log($"{LogPrefix} CountRoomPlayers - connectionId={connection.connectionId} READY");
                 readyCount++;
@@ -288,38 +297,41 @@ public class MatchmakingNetworkManager : NetworkRoomManager
         }
 
         Debug.Log($"{LogPrefix} CountRoomPlayers - totals ready={readyCount}, totalConnected={totalConnected}");
-                readyCount++;
-        }
     }
 
-    System.Collections.Generic.IEnumerable<MatchmakingRoomPlayer> ActiveMatchmakingPlayers()
+    void FillActiveMatchmakingPlayers(List<MatchmakingRoomPlayer> results)
     {
+        results.Clear();
+
         if (!NetworkServer.active)
         {
             Debug.LogWarning($"{LogPrefix} ActiveMatchmakingPlayers - NetworkServer not active");
-            yield break;
+            return;
         }
-            yield break;
 
         foreach (NetworkConnectionToClient connection in NetworkServer.connections.Values)
         {
-            if (connection == null || connection.identity == null)
+            if (connection == null)
             {
-                Debug.LogWarning($"{LogPrefix} ActiveMatchmakingPlayers - skipping null connection or identity");
+                Debug.LogWarning($"{LogPrefix} ActiveMatchmakingPlayers - skipping null connection");
                 continue;
             }
 
-            if (!connection.identity.TryGetComponent(out MatchmakingRoomPlayer player) || player == null)
+            NetworkIdentity identity = connection.identity;
+            if (identity == null)
+            {
+                Debug.LogWarning($"{LogPrefix} ActiveMatchmakingPlayers - connection {connection.connectionId} missing identity");
+                continue;
+            }
+
+            MatchmakingRoomPlayer roomPlayer = identity.GetComponent<MatchmakingRoomPlayer>();
+            if (roomPlayer == null)
             {
                 Debug.LogWarning($"{LogPrefix} ActiveMatchmakingPlayers - connection {connection.connectionId} missing MatchmakingRoomPlayer");
                 continue;
             }
-                continue;
 
-            if (!connection.identity.TryGetComponent(out MatchmakingRoomPlayer player) || player == null)
-                continue;
-
-            yield return player;
+            results.Add(roomPlayer);
         }
     }
 }

@@ -2,7 +2,6 @@ using System.Collections;
 using Mirror;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 /// <summary>
 /// Handles the ready up button on the main menu and displays matchmaking status updates.
@@ -17,12 +16,6 @@ public class MainMenuMatchmakingUI : MonoBehaviour
     [SerializeField] private Text readyButtonLabel;
     [SerializeField] private Text statusLabel;
     [SerializeField] private Text countdownLabel;
-    [Header("UI")]
-    [SerializeField] private Button readyButton;
-    [SerializeField] private Button cancelButton;
-    [SerializeField] private TMP_Text readyButtonLabel;
-    [SerializeField] private TMP_Text statusLabel;
-    [SerializeField] private TMP_Text countdownLabel;
 
     [Header("Copy")]
     [SerializeField] private string readyText = "Ready";
@@ -84,8 +77,6 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         if (localRoomPlayer != null)
         {
             Debug.Log($"{LogPrefix} OnReadyClicked - toggling ready on local room player");
-        if (localRoomPlayer != null)
-        {
             localRoomPlayer.ToggleReady();
             return;
         }
@@ -101,10 +92,6 @@ public class MainMenuMatchmakingUI : MonoBehaviour
             Debug.Log($"{LogPrefix} OnReadyClicked - client already active, waiting for room player");
             return; // waiting for room player to be spawned
         }
-            return; // hosting already, wait for the local room player
-
-        if (NetworkClient.active)
-            return; // waiting for room player to be spawned
 
         if (!TryResolveMatchmakingManager())
         {
@@ -154,7 +141,6 @@ public class MainMenuMatchmakingUI : MonoBehaviour
             return;
 
         Debug.Log($"{LogPrefix} HostMatch - starting new host instance");
-        Debug.Log("[MatchmakingUI] Hosting a new match - no existing host was found.");
         matchmakingManager.StartHost();
         if (statusLabel != null)
             statusLabel.text = "Hosting match...";
