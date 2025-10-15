@@ -251,6 +251,11 @@ public class MainMenuMatchmakingUI : MonoBehaviour
             Debug.Log($"{LogPrefix} TryResolveMatchmakingManager - resolved via NetworkManager.singleton");
             return true;
         }
+            return true;
+
+        matchmakingManager = NetworkManager.singleton as MatchmakingNetworkManager;
+        if (matchmakingManager != null)
+            return true;
 
 #if UNITY_2023_1_OR_NEWER
         matchmakingManager = UnityEngine.Object.FindFirstObjectByType<MatchmakingNetworkManager>();
@@ -269,6 +274,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
             Debug.Log($"{LogPrefix} BeginConnectionTimeout - autoHost disabled");
             return;
         }
+            return;
 
         StopConnectionTimeout();
 
@@ -279,6 +285,8 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         }
 
         Debug.Log($"{LogPrefix} BeginConnectionTimeout - starting timer for {connectionTimeoutSeconds} seconds");
+            return;
+
         connectionTimeoutRoutine = StartCoroutine(WaitForConnectionTimeout());
     }
 
@@ -293,6 +301,9 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         else if (requestedMatchmaking)
         {
             Debug.Log($"{LogPrefix} StopConnectionTimeout - no routine to stop");
+        }
+            StopCoroutine(connectionTimeoutRoutine);
+            connectionTimeoutRoutine = null;
         }
     }
 
@@ -317,6 +328,7 @@ public class MainMenuMatchmakingUI : MonoBehaviour
         }
 
         Debug.Log($"{LogPrefix} WaitForConnectionTimeout - no host found after {elapsed:F2} seconds, starting host");
+        Debug.Log("[MatchmakingUI] No host found in time. Starting a new host instance.");
         requestedMatchmaking = false;
         StopActiveClient();
         HostMatch();
